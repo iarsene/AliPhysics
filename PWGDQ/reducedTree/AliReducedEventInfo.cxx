@@ -38,7 +38,7 @@ AliReducedEventInfo::AliReducedEventInfo() :
   fTriggerMask(0),
   fOnlineTriggerMask(0),
   fOnlineTriggerMaskNext50(0),
-  fTriggerClass(""),
+  //fTriggerClass(""),
   fMultiplicityEstimators(),
   fMultiplicityEstimatorPercentiles(),
   fIsPhysicsSelection(kTRUE),
@@ -119,7 +119,7 @@ AliReducedEventInfo::AliReducedEventInfo(const Char_t* name, Int_t trackOption /
   fTriggerMask(0),
   fOnlineTriggerMask(0),
   fOnlineTriggerMaskNext50(0),
-  fTriggerClass(""),
+  //fTriggerClass(""),
   fMultiplicityEstimators(),
   fMultiplicityEstimatorPercentiles(),
   fIsPhysicsSelection(kTRUE),
@@ -216,7 +216,7 @@ void AliReducedEventInfo::CopyEventHeader(const AliReducedEventInfo* other) {
    fTriggerMask = other->fTriggerMask;
    fOnlineTriggerMask = other->fOnlineTriggerMask;
    fOnlineTriggerMaskNext50 = other->fOnlineTriggerMaskNext50;
-   fTriggerClass = other->fTriggerClass;
+   //fTriggerClass = other->fTriggerClass;
    for(Int_t i=0; i<10; ++i) {
       fMultiplicityEstimators[i] = other->fMultiplicityEstimators[i];
       fMultiplicityEstimatorPercentiles[i] = other->fMultiplicityEstimatorPercentiles[i];
@@ -283,7 +283,7 @@ void AliReducedEventInfo::ClearEvent() {
   fTriggerMask = 0;
   fOnlineTriggerMask = 0;
   fOnlineTriggerMaskNext50 = 0;
-  fTriggerClass = "";
+  //fTriggerClass = "";
   fIsPhysicsSelection = kTRUE;
   fIsSPDPileup = kFALSE;
   fIsSPDPileupMultBins = kFALSE;

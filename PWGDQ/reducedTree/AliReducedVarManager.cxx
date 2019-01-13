@@ -25,6 +25,7 @@ using std::ifstream;
 #include <TProfile.h>
 #include <TRandom.h>
 #include <TProfile2D.h>
+#include <TGraphErrors.h>
 #include <TFile.h>
 #include <THashList.h>
 
@@ -163,6 +164,8 @@ TH1I* AliReducedVarManager::fgRunDipolePolarity = 0x0;
 TH1I* AliReducedVarManager::fgRunL3Polarity = 0x0;
 TH1I* AliReducedVarManager::fgRunTimeStart = 0x0;
 TH1I* AliReducedVarManager::fgRunTimeEnd = 0x0;
+TFile* AliReducedVarManager::fgGRPfile = 0x0;
+TGraphErrors* AliReducedVarManager::fgRunInstLumi = 0x0;
 std::vector<Int_t>  AliReducedVarManager::fgRunNumbers;
 Int_t AliReducedVarManager::fgRunID = -1;
 TH1* AliReducedVarManager::fgAvgMultVsVtxGlobal      [kNMultiplicityEstimators] = {0x0};
@@ -403,6 +406,10 @@ void AliReducedVarManager::FillEventInfo(BASEEVENT* baseEvent, Float_t* values, 
     if(fgRunL3Polarity) values[kL3Polarity] = fgRunL3Polarity->GetBinContent(fgRunL3Polarity->GetXaxis()->FindBin(Form("%d",fgCurrentRunNumber)));
     if(fgRunTimeStart) values[kRunTimeStart] = fgRunTimeStart->GetBinContent(fgRunTimeStart->GetXaxis()->FindBin(Form("%d",fgCurrentRunNumber)));
     if(fgRunTimeEnd) values[kRunTimeEnd] = fgRunTimeEnd->GetBinContent(fgRunTimeEnd->GetXaxis()->FindBin(Form("%d",fgCurrentRunNumber)));
+    if(fgGRPfile) {
+       fgRunInstLumi = (TGraphErrors*)fgGRPfile->Get(Form("InstLumi_Run%d", fgCurrentRunNumber));
+       //cout << "Lumi hist loaded " << fgRunInstLumi << endl;
+    }
     
     // VZERO calibration
     if(fgVZEROCalibrationPath.Data()[0]!='\0') {
@@ -495,10 +502,22 @@ void AliReducedVarManager::FillEventInfo(BASEEVENT* baseEvent, Float_t* values, 
   values[kEventNumberInFile]    = event->EventNumberInFile();
   values[kBC]                   = event->BC();
   values[kTimeStamp]            = event->TimeStamp();
-  if(fgUsedVars[kTimeRelativeSOR]) values[kTimeRelativeSOR] = (event->TimeStamp() - values[kRunTimeStart]) / 60.;
+  Int_t timeSOR = 0; Int_t timeEOR = 0;
+  if(fgUsedVars[kTimeRelativeSOR] || fgUsedVars[kTimeRelativeSORfraction]) {
+     timeSOR = fgRunTimeStart->GetBinContent(fgRunTimeStart->GetXaxis()->FindBin(Form("%d",fgCurrentRunNumber)));
+     timeEOR = fgRunTimeEnd->GetBinContent(fgRunTimeEnd->GetXaxis()->FindBin(Form("%d",fgCurrentRunNumber)));
+  }
+  if(fgUsedVars[kTimeRelativeSOR]) {
+     values[kTimeRelativeSOR] = Double_t(event->TimeStamp() - timeSOR) / 60.;     // in minutes
+     //cout << "timestamp / start " << values[kInstLumi] << endl;
+  }
   if(fgUsedVars[kTimeRelativeSORfraction] && 
      (values[kRunTimeEnd]-values[kRunTimeStart])>1.)   // the run should be longer than 1 second ... 
-    values[kTimeRelativeSORfraction] = (event->TimeStamp() - values[kRunTimeStart]) / (values[kRunTimeEnd] - values[kRunTimeStart]);
+     values[kTimeRelativeSORfraction] = (event->TimeStamp() - timeSOR) / (timeEOR - timeSOR);
+  if(fgRunInstLumi) {
+     values[kInstLumi]          = fgRunInstLumi->Eval(event->TimeStamp()); 
+     //cout << "lumi " << values[kInstLumi] << endl;
+  }
   values[kEventType]            = event->EventType();
   values[kTriggerMask]          = event->TriggerMask();
   values[kINT7Triggered]        = event->TriggerMask() & kINT7 ?1:0;
@@ -2261,6 +2280,7 @@ void AliReducedVarManager::SetDefaultVarNames() {
   fgVariableNames[kRunID]                = "Run number";                      fgVariableUnits[kRunID]                = "";
   fgVariableNames[kLHCFillNumber]        = "LHC fill number";                 fgVariableUnits[kLHCFillNumber]        = ""; 
   fgVariableNames[kBeamEnergy]           = "Beam energy";                     fgVariableUnits[kBeamEnergy]           = "GeV";
+  fgVariableNames[kInstLumi]             = "Instantaneous luminosity";        fgVariableUnits[kInstLumi]             = "Hz/mb";   
   fgVariableNames[kDetectorMask]         = "Detector mask";                   fgVariableUnits[kDetectorMask]         = "";
   fgVariableNames[kNumberOfDetectors]    = "Number of active detectors";      fgVariableUnits[kNumberOfDetectors]    = "";  
   fgVariableNames[kDipolePolarity]       = "Dipole magnet polarity";          fgVariableUnits[kDipolePolarity]       = "";
@@ -3087,6 +3107,30 @@ void AliReducedVarManager::SetGRPDataInfo(TH1I* dipolePolarity, TH1I* l3Polarity
       fgRunTimeEnd = (TH1I*)timeStop->Clone("AliReducedVarManager_TimeEnd");
       fgRunTimeEnd->SetDirectory(0x0);
    }
+}
+
+//____________________________________________________________________________________
+void AliReducedVarManager::SetupGRPinformation(const Char_t* filename) {
+   //
+   // open the root file containing GRP information and initialize needed objects
+   //
+   fgGRPfile = new TFile(filename);
+   fgRunTotalLuminosity = (TH1F*)fgGRPfile->Get("lumiTotal")->Clone("AliReducedVarManager_TotalLuminosity");
+   fgRunTotalLuminosity->SetDirectory(0x0);
+   fgRunTotalIntensity0 = (TH1F*)fgGRPfile->Get("intTotal0")->Clone("AliReducedVarManager_TotalIntensity0");
+   fgRunTotalIntensity0->SetDirectory(0x0);
+   fgRunTotalIntensity1 = (TH1F*)fgGRPfile->Get("intTotal1")->Clone("AliReducedVarManager_TotalIntensity1");
+   fgRunTotalIntensity1->SetDirectory(0x0);
+   fgRunLHCFillNumber = (TH1I*)fgGRPfile->Get("fillNumber")->Clone("AliReducedVarManager_LHCFillNumber");
+   fgRunLHCFillNumber->SetDirectory(0x0);
+   fgRunDipolePolarity = (TH1I*)fgGRPfile->Get("dipolePolarity")->Clone("AliReducedVarManager_DipolePolarity");
+   fgRunDipolePolarity->SetDirectory(0x0);
+   fgRunL3Polarity = (TH1I*)fgGRPfile->Get("l3Polarity")->Clone("AliReducedVarManager_L3Polarity");
+   fgRunL3Polarity->SetDirectory(0x0);
+   fgRunTimeStart = (TH1I*)fgGRPfile->Get("timeStart")->Clone("AliReducedVarManager_TimeStart");
+   fgRunTimeStart->SetDirectory(0x0);
+   fgRunTimeEnd = (TH1I*)fgGRPfile->Get("timeEnd")->Clone("AliReducedVarManager_TimeEnd");
+   fgRunTimeEnd->SetDirectory(0x0);
 }
 
 //____________________________________________________________________________________

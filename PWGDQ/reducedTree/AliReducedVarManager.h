@@ -14,6 +14,7 @@
 #include <TH2F.h>
 #include <TH3F.h>
 #include <TProfile2D.h>
+#include <TGraphErrors.h>
 
 #include <AliReducedPairInfo.h>
 
@@ -217,6 +218,7 @@ class AliReducedVarManager : public TObject {
     kRunNo,             // run number         
     kRunID,             // variable for easy filling of histograms vs. run number, without empty bins
     kBeamEnergy,        // LHC beam energy
+    kInstLumi,           // instantaneous interaction rate
     kDetectorMask,      // detector mask
     kNumberOfDetectors, // number of active detectors
     kBC,                // bunch crossing     
@@ -682,6 +684,7 @@ class AliReducedVarManager : public TObject {
   static void SetAssociatedHadronEfficiencyMap(TH3F* map, Variables varX, Variables varY, Variables varZ);
   static void SetLHCDataInfo(TH1F* totalLumi, TH1F* totalInt0, TH1F* totalInt1, TH1I* fillNumber);
   static void SetGRPDataInfo(TH1I* dipolePolarity, TH1I* l3Polarity, TH1I* timeStart, TH1I* timeStop);
+  static void SetupGRPinformation(const Char_t* filename);
   static void SetRunNumbers( TString runNumbers );
   static void SetMultiplicityProfile( TH2* profile, Int_t estimator );
   static void SetVZEROCalibrationPath(const Char_t* path);
@@ -730,6 +733,8 @@ class AliReducedVarManager : public TObject {
   static TH1I* fgRunL3Polarity;                // L3 magnet polarity, GRP/GRP/Data::GetL3Polarity()
   static TH1I* fgRunTimeStart;                // run start time, GRP/GRP/Data::GetTimeStart()
   static TH1I* fgRunTimeEnd;                  // run stop time, GRP/GRP/Data::GetTimeEnd()
+  static TFile* fgGRPfile;                    // file containing GRP information
+  static TGraphErrors* fgRunInstLumi;         // time dependence of the instantaneous lumi for the current run, AliLumiTools::GetLumiFromCTP(run)
   static std::vector<Int_t> fgRunNumbers;     // vector with run numbers (for histograms vs. run number)
   static Int_t fgRunID;                       // run ID
   static TH1* fgAvgMultVsVtxGlobal      [kNMultiplicityEstimators];        // average multiplicity vs. z-vertex position (global)

@@ -98,7 +98,7 @@ Bool_t AliReducedEventCut::IsSelected(TObject* obj, Float_t* values) {
   if (fEventTriggerClassEnabled) {
     if(!obj->InheritsFrom(AliReducedEventInfo::Class())) return kFALSE;
     AliReducedEventInfo* eventInfo = (AliReducedEventInfo*)obj;
-    TString trgClasses = eventInfo->TriggerClass();
+    TString trgClasses = "";//eventInfo->TriggerClass();
     if (!(trgClasses.Contains(fEventTriggerClass.Data()))) return kFALSE;
   }
 

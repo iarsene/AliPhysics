@@ -1072,7 +1072,7 @@ void AliResonanceFits::FitInvMass() {
       for(Int_t i=0;i<fBkgFitFunction->GetNpar();++i)
          fBkgFitFunction->SetParameter(i, fGlobalFitFunction->GetParameter(i+1));
       //fBkg->Scale(fGlobalFitFunction->GetParameter(1));
-      fSignalMCshape->Scale(fGlobalFitFunction->GetParameter(0));
+      //fSignalMCshape->Scale(fGlobalFitFunction->GetParameter(0));
       //fSplusResidualBkg->Draw();
       //fBkgFitFunction->Draw("same");
       
